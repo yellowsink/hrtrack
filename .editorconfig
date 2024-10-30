@@ -1,12 +1,13 @@
-# http://editorconfig.org
 root = true
 
 [*]
-indent_style = tab
-end_of_line = lf
 charset = utf-8
+insert_final_newline = false
 trim_trailing_whitespace = true
-insert_final_newline = true
+end_of_line = lf
+indent_style = tab
+max_line_length = 100
+tab_width = 3
 
 [*.yml]
 indent_style = space
