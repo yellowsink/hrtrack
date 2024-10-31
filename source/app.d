@@ -7,7 +7,12 @@ void main()
 	settings.bindAddresses = ["::1", "127.0.0.1"];
 	settings.sessionStore = new MemorySessionStore; // should I be storing this in Rocks instead? Probably fine.
 
-	auto listener = listenHTTP(settings, new URLRouter().registerRestInterface(new Api));
+	auto listener = listenHTTP(
+		settings,
+		new URLRouter()
+			.registerRestInterface(new Api)
+			.get("*", serveStaticFiles("./public/"))
+	);
 
 	scope (exit) listener.stopListening();
 
@@ -24,7 +29,6 @@ class Api : IApi
 {
 	private
 	{
-		// session variables
-
+		// session variables go here
 	}
 }
