@@ -4,8 +4,6 @@
 	],
 	"copyright": "Copyright © 2024, Hazel Atkinson",
 	"dependencies": {
-		"asdf": "~>0.7.17",
-		"cbor-d": "~>0.5.5",
 		"crypto": "~>0.2.18",
 		"rocksdb": "~>0.0.7",
 		"vibe-d": "~>0.9"
