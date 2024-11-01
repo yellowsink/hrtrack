@@ -4,8 +4,8 @@
 	],
 	"copyright": "Copyright © 2024, Hazel Atkinson",
 	"dependencies": {
-		"crypto": "~>0.2.18",
 		"rocksdb": "~>0.0.7",
+		"secured": "~>3.0.0",
 		"vibe-d": "~>0.9"
 	},
 	"description": "A PWA to track HRT",

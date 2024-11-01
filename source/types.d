@@ -1,5 +1,7 @@
+alias RawAESKey = ubyte[256/8];
+
 struct AuthedUserSession
 {
 	ulong id;
-	ubyte[256/8] key;
+	RawAESKey key;
 }
