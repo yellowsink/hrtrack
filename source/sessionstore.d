@@ -4,6 +4,7 @@ import std.variant : Variant;
 import core.time : MonoTime, Duration, dur;
 
 // allow a user to stay logged in until her next shot :)
+// i am fully aware that the standard recommendation is like 15 minutes. bleh.
 enum SESSION_TIMEOUT = dur!"weeks"(2);
 
 // how often to clean up expired sessions
@@ -13,7 +14,7 @@ final class ExpiringMemorySessionStore : SessionStore
 {
 @safe:
 	private Variant[string][string] _sessions;
-	private MonoTime[string][string] _timeouts;
+	private MonoTime[string] _timeouts;
 
 	//private Duration _timeoutLength;
 	private alias _timeoutLength = SESSION_TIMEOUT;
@@ -36,18 +37,8 @@ final class ExpiringMemorySessionStore : SessionStore
 	{
 		import vibe.core.log;
 		try {
-			auto cleanupTime = MonoTime.currTime;
-
-			foreach (kv; _sessions.byKeyValue)
-			{
-				if (kv.value is null) continue;
-
-				foreach (key; kv.value.byKey)
-				{
-					if (_timeouts[kv.key][key] > cleanupTime)
-						remove(kv.key, key);
-				}
-			}
+			foreach (sess; _sessions.byKey)
+				cleanupIfExpired(sess);
 		}
 		catch (Exception e)
 		{
@@ -57,18 +48,27 @@ final class ExpiringMemorySessionStore : SessionStore
 		}
 	}
 
-	private bool removeOrRefresh(string id, string name)
+	private bool cleanupIfExpired(string id)
 	{
-		if (_timeouts[id][name] > MonoTime.currTime)
+		if (!(id in _timeouts) || (_timeouts[id] > MonoTime.currTime))
 		{
-			remove(id, name);
-			return false;
-		}
-		else
-		{
-			_timeouts[id][name] = MonoTime.currTime + _timeoutLength;
+			_sessions.remove(id);
+			_timeouts.remove(id);
 			return true;
 		}
+		return false;
+	}
+
+	private bool expireOrRefresh(string id)
+	{
+		assert(id in _sessions);
+
+		if (!cleanupIfExpired(id))
+		{
+			_timeouts[id] = MonoTime.currTime + _timeoutLength;
+			return true;
+		}
+		return false;
 	}
 
 	const @property SessionStorageType storageType() { return SessionStorageType.native; }
@@ -77,7 +77,7 @@ final class ExpiringMemorySessionStore : SessionStore
 	{
 		auto s = createSessionInstance();
 		_sessions[s.id] = null;
-		_timeouts[s.id] = null;
+		_timeouts[s.id] = MonoTime.currTime + _timeoutLength;
 		return s;
 	}
 
@@ -88,37 +88,29 @@ final class ExpiringMemorySessionStore : SessionStore
 
 	@trusted void set(string id, string name, Variant value)
 	{
+		assert(expireOrRefresh(id));
 		_sessions[id][name] = value;
-		_timeouts[id][name] = MonoTime.currTime + _timeoutLength;
 	}
 
 	@trusted Variant get(string id, string name, lazy Variant defaultValue)
 	{
-		assert(id in _sessions);
-		assert(id in _timeouts);
+		assert(expireOrRefresh(id));
 
 		if (auto pv = name in _sessions[id])
-		{
-			if (removeOrRefresh(id, name)) return *pv;
-		}
+			return *pv;
 
 		return defaultValue;
 	}
 
 	bool isKeySet(string id, string name)
 	{
-		if (name in _sessions[id])
-		{
-			// handle timeout
-			return removeOrRefresh(id, name);
-		}
-		return false;
+		return expireOrRefresh(id) && (name in _sessions[id]) !is null;
 	}
 
 	void remove(string id, string name)
 	{
+		assert(expireOrRefresh(id));
 		_sessions[id].remove(name);
-		_timeouts[id].remove(name);
 	}
 
 	void destroy(string id)
@@ -130,12 +122,12 @@ final class ExpiringMemorySessionStore : SessionStore
 	@trusted int iterateSession(string id, scope int delegate(string key) @safe del)
 	{
 		assert(id in _sessions);
+		assert(expireOrRefresh(id));
+
 		foreach (key; _sessions[id].byKey)
-		{
-			if (removeOrRefresh(id, key))
-				if (auto ret = del(key))
-					return ret;
-		}
+			if (auto ret = del(key))
+				return ret;
+
 		return 0;
 	}
 }
