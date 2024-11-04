@@ -2,7 +2,7 @@ import vibe.vibe;
 
 import sessionstore : ExpiringMemorySessionStore;
 
-import types : AuthedUserSession;
+import types;
 
 void main()
 {
@@ -20,16 +20,6 @@ void main()
 
 	scope (exit) listener.stopListening();
 
-	/* import storage : encrypt, decrypt;
-	import std.string : representation, assumeUTF;
-	import std.stdio;
-
-	ubyte[256/8] key = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31];
-	auto plaintext = "hello there how are you doing today".representation;
-	auto encrypted = encrypt(key, plaintext);
-	writeln(encrypted);
-	writeln(decrypt(key, encrypted).assumeUTF); */
-
 	runApplication();
 }
 
@@ -39,7 +29,52 @@ class Api
 	{
 		// stores the user's name and encryption key in the session
 		SessionVar!(AuthedUserSession, "user") authedUser;
+
+		// stores the provisional auth details for the user signup flow
+		SessionVar!(AccessKeyAuthPair, "provisionalCreds") provisionalCreds;
+
+		static ubyte[N] rand(ulong N)()
+		{
+			import secured.random : random;
+
+			ubyte[N] buf;
+			buf[] = random(N);
+			return buf;
+		}
+
+		static T rand(T)()
+		{
+			return *(cast(T*) rand!(T.sizeof));
+		}
 	}
 
+	string index() { return ""; }
 
+	// step 1 of the signup flow: generate provisional credentials
+	Json getProvisionalCreds()
+	{
+		import std.base64 : Base64URLNoPadding;
+
+		auto ap = AccessKeyAuthPair(rand!ulong, rand!RawAESKey);
+		provisionalCreds = ap;
+
+		return serializeToJson(ApiAccessKeyAuthPair(ap));
+	}
+
+	string postCreateAccount(char[] id, char[] accessKey)
+	{
+		auto creds = ApiAccessKeyAuthPair(id, accessKey).decode();
+
+		if (creds.id != provisionalCreds.id || creds.accessKey != provisionalCreds.accessKey)
+		{
+			status(HTTPStatus.badRequest);
+			return "Invalid provisional credentials provided";
+		}
+
+		request.session.remove("provisionalCreds");
+
+		// TODO: create account
+
+		return "Created account";
+	}
 }

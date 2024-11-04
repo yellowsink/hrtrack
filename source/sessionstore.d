@@ -48,9 +48,10 @@ final class ExpiringMemorySessionStore : SessionStore
 		}
 	}
 
+	// returns true if expired
 	private bool cleanupIfExpired(string id)
 	{
-		if (!(id in _timeouts) || (_timeouts[id] > MonoTime.currTime))
+		if (!(id in _timeouts) || (_timeouts[id] < MonoTime.currTime))
 		{
 			_sessions.remove(id);
 			_timeouts.remove(id);
@@ -59,6 +60,7 @@ final class ExpiringMemorySessionStore : SessionStore
 		return false;
 	}
 
+	// returns true if still alive
 	private bool expireOrRefresh(string id)
 	{
 		assert(id in _sessions);
