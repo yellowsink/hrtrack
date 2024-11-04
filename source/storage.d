@@ -94,13 +94,15 @@ struct DB
 
 	void startBatch()
 	{
-		assert(_wb.isNull, "cannot start a batch when you already have one open");
+		import std.exception : enforce;
+		enforce(_wb.isNull, "cannot start a batch when you already have one open");
 		_wb = new WriteBatch;
 	}
 
 	void endBatch()
 	{
-		assert(!_wb.isNull, "cannot end a batch when you don't have one open");
+		import std.exception : enforce;
+		enforce(!_wb.isNull, "cannot end a batch when you don't have one open");
 
 		_db.write(_wb.get);
 		_wb.nullify();

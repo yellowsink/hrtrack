@@ -2,6 +2,7 @@ import vibe.http.session;
 import vibe.core.core : Timer, createLeanTimer, exitEventLoop;
 import std.variant : Variant;
 import core.time : MonoTime, Duration, dur;
+import std.exception : enforce;
 
 // allow a user to stay logged in until her next shot :)
 // i am fully aware that the standard recommendation is like 15 minutes. bleh.
@@ -63,7 +64,7 @@ final class ExpiringMemorySessionStore : SessionStore
 	// returns true if still alive
 	private bool expireOrRefresh(string id)
 	{
-		assert(id in _sessions);
+		enforce(id in _sessions);
 
 		if (!cleanupIfExpired(id))
 		{
@@ -90,13 +91,13 @@ final class ExpiringMemorySessionStore : SessionStore
 
 	@trusted void set(string id, string name, Variant value)
 	{
-		assert(expireOrRefresh(id));
+		enforce(expireOrRefresh(id));
 		_sessions[id][name] = value;
 	}
 
 	@trusted Variant get(string id, string name, lazy Variant defaultValue)
 	{
-		assert(expireOrRefresh(id));
+		enforce(expireOrRefresh(id));
 
 		if (auto pv = name in _sessions[id])
 			return *pv;
@@ -111,7 +112,7 @@ final class ExpiringMemorySessionStore : SessionStore
 
 	void remove(string id, string name)
 	{
-		assert(expireOrRefresh(id));
+		enforce(expireOrRefresh(id));
 		_sessions[id].remove(name);
 	}
 
@@ -123,8 +124,8 @@ final class ExpiringMemorySessionStore : SessionStore
 
 	@trusted int iterateSession(string id, scope int delegate(string key) @safe del)
 	{
-		assert(id in _sessions);
-		assert(expireOrRefresh(id));
+		enforce(id in _sessions);
+		enforce(expireOrRefresh(id));
 
 		foreach (key; _sessions[id].byKey)
 			if (auto ret = del(key))

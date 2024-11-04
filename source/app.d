@@ -63,12 +63,19 @@ class Api
 
 	string postCreateAccount(char[] id, char[] accessKey)
 	{
+		// prevent someone sending AAAAAAAAAAA, AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA etc
+		if (!request.session || !request.session.isKeySet("provisionalCreds"))
+		{
+			status(HTTPStatus.unauthorized);
+			return "You must access /provisional_creds before attempting to create an account";
+		}
+
 		auto creds = ApiAccessKeyAuthPair(id, accessKey).decode();
 
 		if (creds.id != provisionalCreds.id || creds.accessKey != provisionalCreds.accessKey)
 		{
-			status(HTTPStatus.badRequest);
-			return "Invalid provisional credentials provided";
+			status(HTTPStatus.unauthorized);
+			return "You must return the same credentials as previously provided to you";
 		}
 
 		request.session.remove("provisionalCreds");

@@ -3,8 +3,10 @@ import std.bitmanip : littleEndianToNative, nativeToLittleEndian;
 
 private T[L] dynToStatic(ulong L, T)(T[] dyn)
 {
+	import std.exception : enforce;
+
 	T[L] dst;
-	assert(dyn.length == L);
+	enforce(dyn.length == L);
 	dst[] = dyn[];
 	return dst;
 }
