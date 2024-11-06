@@ -2,6 +2,8 @@ import vibe.vibe;
 
 import sessionstore : ExpiringMemorySessionStore;
 
+import crypt;
+import storage;
 import types;
 
 void main()
@@ -32,20 +34,6 @@ class Api
 
 		// stores the provisional auth details for the user signup flow
 		SessionVar!(AccessKeyAuthPair, "provisionalCreds") provisionalCreds;
-
-		static ubyte[N] rand(ulong N)()
-		{
-			import secured.random : random;
-
-			ubyte[N] buf;
-			buf[] = random(N);
-			return buf;
-		}
-
-		static T rand(T)()
-		{
-			return *(cast(T*) rand!(T.sizeof));
-		}
 	}
 
 	string index() { return ""; }
@@ -53,14 +41,18 @@ class Api
 	// step 1 of the signup flow: generate provisional credentials
 	Json getProvisionalCreds()
 	{
-		import std.base64 : Base64URLNoPadding;
+		AccessKeyAuthPair ap;
+		do
+		{
+			ap = AccessKeyAuthPair(rand!ulong, rand!RawAESKey);
+		} while (database.hasUser(ap.id));
 
-		auto ap = AccessKeyAuthPair(rand!ulong, rand!RawAESKey);
 		provisionalCreds = ap;
 
 		return serializeToJson(ApiAccessKeyAuthPair(ap));
 	}
 
+	// step 2 of the signup flow: as long as the user provides correct provisional credentials, create an account
 	string postCreateAccount(char[] id, char[] accessKey)
 	{
 		// prevent someone sending AAAAAAAAAAA, AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA etc
@@ -80,8 +72,15 @@ class Api
 
 		request.session.remove("provisionalCreds");
 
-		// TODO: create account
+		authedUser = database.createUser(creds.id, creds.accessKey);
 
 		return "Created account";
 	}
+
+	/* string login(char[] id, char[] accessKey)
+	{
+		auto creds = ApiAccessKeyAuthPair(id, accessKey).decode();
+
+
+	} */
 }

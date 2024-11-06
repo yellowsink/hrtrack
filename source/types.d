@@ -1,5 +1,5 @@
 import std.base64 : B64 = Base64URLNoPadding;
-import std.bitmanip : littleEndianToNative, nativeToLittleEndian;
+import std.bitmanip : bigEndianToNative, nativeToBigEndian;
 
 private T[L] dynToStatic(ulong L, T)(T[] dyn)
 {
@@ -35,7 +35,7 @@ struct ApiAccessKeyAuthPair
 
 	this(AccessKeyAuthPair ap)
 	{
-		id = B64.encode(ap.id.nativeToLittleEndian);
+		id = B64.encode(ap.id.nativeToBigEndian);
 		accessKey = B64.encode(ap.accessKey);
 	}
 
@@ -48,8 +48,16 @@ struct ApiAccessKeyAuthPair
 	AccessKeyAuthPair decode()
 	{
 		return AccessKeyAuthPair(
-			B64.decode(id).dynToStatic!(ulong.sizeof).littleEndianToNative!ulong,
+			B64.decode(id).dynToStatic!(ulong.sizeof).bigEndianToNative!ulong,
 			B64.decode(accessKey).dynToStatic!32
 		);
 	}
+}
+
+// domain types
+
+struct UserData
+{
+	ulong id;
+
 }

@@ -15,3 +15,5 @@ hrtrack-test-*
 *.obj
 *.lst
 .idea
+
+HRTRACK_DB
