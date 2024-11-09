@@ -39,11 +39,11 @@ void put(DB, T, bool ENC = true)(DB db, const ubyte[] key, const T value, const 
 T get(DB, T, bool ENC = true)(DB db, const ubyte[] key, const RawAESKey aesKey)
 {
 	import cerealed : decerealise;
-	import std.string : assumeUTF;
+	import std.conv : to;
 
 	auto gotten = db.get(cast(ubyte[]) key);
 
-	if (gotten.length == 0) throw new KeyNotPresentException(("Key '" ~ key.assumeUTF ~ "' not present").dup);
+	if (gotten.length == 0) throw new KeyNotPresentException(("Key '" ~ key.to!string ~ "' not present").dup);
 
 	static if (ENC)
 		auto cerealised = decrypt(aesKey, gotten);

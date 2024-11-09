@@ -1,5 +1,7 @@
 import vibe.vibe;
 
+import secured.util : CryptographicException;
+
 import sessionstore : ExpiringMemorySessionStore;
 
 import crypt;
@@ -77,10 +79,48 @@ class Api
 		return "Created account";
 	}
 
-	/* string login(char[] id, char[] accessKey)
+	string postLogin(char[] id, char[] accessKey)
 	{
 		auto creds = ApiAccessKeyAuthPair(id, accessKey).decode();
 
+		// we fail more than we succeed lmao
+		status(HTTPStatus.unauthorized);
 
-	} */
+		// catch incorrect decryptions keys, this is how we detect incorrect creds
+		try
+		{
+			// get user data key from the database
+			auto udKey = database.getUserDataKey(creds.accessKey);
+			if (udKey.isNull)
+				return "incorrect user ID or access key";
+
+			// now, get user data
+			auto userData = database.getUserById(creds.id, udKey.get);
+			if (userData.isNull)
+				return "incorrect user ID or access key";
+
+			// yay! we're okay. now set our session and return.
+			authedUser = AuthedUserSession(creds.id, udKey.get);
+
+			status(HTTPStatus.ok);
+			response.contentType = "application/json";
+			return serializeToJsonString(userData.get);
+		}
+		catch (CryptographicException)
+		{
+			return "incorrect user ID or access key";
+		}
+	}
+
+	string postLogout()
+	{
+		if (!request.session || !request.session.isKeySet("user"))
+		{
+			status(HTTPStatus.badRequest);
+			return "You are not logged in";
+		}
+
+		request.session.remove("user");
+		return "";
+	}
 }
