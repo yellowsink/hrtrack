@@ -13,10 +13,11 @@ ubyte[N] rand(ulong N)()
 
 T rand(T)()
 {
-	return *(cast(T*) rand!(T.sizeof));
+	auto bytes = rand!(T.sizeof)();
+	return *(cast(T*) &bytes);
 }
 
-ubyte[] encrypt(const RawAESKey rkey, const ubyte[] payload) @safe
+ubyte[] encrypt(const RawAESKey rkey, const ubyte[] payload)
 {
 	import secured.symmetric : initializeSymmetricKey, encrypt;
 
@@ -26,7 +27,9 @@ ubyte[] encrypt(const RawAESKey rkey, const ubyte[] payload) @safe
 	return (encrypted.iv ~ encrypted.cipherText ~ encrypted.authTag).dup;
 }
 
-ubyte[] decrypt(const RawAESKey rkey, const ubyte[] cipher) @safe
+// note that secured authenticates the encryption for us,
+// so if you plug in the wrong key, you get a CryptographicException, not garbage data.
+ubyte[] decrypt(const RawAESKey rkey, const ubyte[] cipher)
 {
 	import secured.symmetric : initializeSymmetricKey, EncryptedData, decrypt;
 
@@ -34,4 +37,21 @@ ubyte[] decrypt(const RawAESKey rkey, const ubyte[] cipher) @safe
 	auto encrypted = EncryptedData(cipher, 12, 16);
 
 	return decrypt(key, encrypted);
+}
+
+ubyte[256/8] hash(const ubyte[] raw)
+{
+	import secured.hash : hash_ex, HashAlgorithm;
+
+	ubyte[256/8] buf;
+	buf[] = hash_ex(raw, HashAlgorithm.SHA3_256);
+	return buf;
+}
+
+// performs a constant-time check for extra security.
+bool check_hash(const ubyte[32] hash, const ubyte[] raw)
+{
+	import secured.hash : hash_verify_ex, HashAlgorithm;
+
+	return hash_verify_ex(hash[], raw, HashAlgorithm.SHA3_256);
 }

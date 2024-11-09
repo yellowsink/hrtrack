@@ -108,3 +108,13 @@ Currently supported authentication methods:
 
 Currently supported MFA methods:
  - None
+
+## Credits
+
+The [vibe.d](https://vibed.org/) framework for handling web and I/O for me.
+
+[RocksDB](https://rocksdb.org/), for being a stupid fast and simple embedded key-value database.
+
+The [SecureD](https://github.com/LightBender/SecureD) library for being absolutely awesome.
+It has amazing defaults and handles all the footguns for you, to make adding cryptography to your app properly actually
+feasible for a newbie. So many kudos.

@@ -4,6 +4,8 @@ import rocksdb : Database, WriteBatch;
 
 import types : RawAESKey;
 
+import crypt : encrypt, decrypt, hash, check_hash;
+
 private:
 
 Database open(string name)
@@ -20,7 +22,6 @@ Database open(string name)
 
 void put(DB, T, bool ENC = true)(DB db, const ubyte[] key, const T value, const RawAESKey aesKey)
 {
-	import crypt : encrypt;
 	import cerealed : cerealise;
 
 	auto cerealised = cerealise(value);
@@ -37,7 +38,6 @@ void put(DB, T, bool ENC = true)(DB db, const ubyte[] key, const T value, const 
 
 T get(DB, T, bool ENC = true)(DB db, const ubyte[] key, const RawAESKey aesKey)
 {
-	import crypt : decrypt;
 	import cerealed : decerealise;
 	import std.string : assumeUTF;
 
@@ -69,7 +69,7 @@ enum KeyType : ubyte
 {
 	// uid -> UserData
 	UserDataById,
-	// uid ~ akey[0..4] -> udkey
+	// sha256(akey) -> udkey
 	UDKeyByAccessKey,
 }
 
@@ -189,21 +189,16 @@ struct DB
 
 	// domain operations
 
-	private ubyte[] accessKeyDbKey(ulong uid, RawAESKey ak)
+	void addAccessKey(const RawAESKey accessKey, const RawAESKey userDataKey)
 	{
-		return KeyType.UDKeyByAccessKey ~ uid.nativeToBigEndian ~ ak[0..4];
-	}
-
-	void addAccessKey(const ulong uid, const RawAESKey accessKey, const RawAESKey userDataKey)
-	{
-		const key = accessKeyDbKey(uid, accessKey);
+		const key = KeyType.UDKeyByAccessKey ~ hash(accessKey);
 		enforce(!includes(key));
 		put(key, userDataKey, accessKey);
 	}
 
-	Nullable!RawAESKey getUserDataKey(const ulong id, const RawAESKey accessKey)
+	Nullable!RawAESKey getUserDataKey(const RawAESKey accessKey)
 	{
-		return get!RawAESKey(accessKeyDbKey(id, accessKey), accessKey);
+		return get!RawAESKey(KeyType.UDKeyByAccessKey ~ hash(accessKey), accessKey);
 	}
 
 	bool hasUser(const ulong id)
@@ -224,10 +219,9 @@ struct DB
 
 		auto user = UserData(id);
 
-		// TODO: we need some kind of way of checking that the decryption key is actually correct.
 		atomic({
 			put(KeyType.UserDataById ~ id.nativeToBigEndian, user, userDataKey);
-			addAccessKey(id, accessKey, userDataKey);
+			addAccessKey(accessKey, userDataKey);
 		});
 
 		return AuthedUserSession(id, userDataKey);
