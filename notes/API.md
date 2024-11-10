@@ -16,25 +16,26 @@ when in transit over the API.
 
 ### `GET /`
 
-Expected request: nothing special.
+Response: HTML
+
+### `GET /dashboard`
+
+Expected request:
+ - user is logged in
+ - optional `onboard` argument that will tell the client to show the onboarding flow.
+
+Response:
+ - `200` HTML
+ - `401` with delayed automatic redirect to `/`
+
+Redirects you back to `/` if you are not logged in.
+
+### `GET /account_preflight`
 
 Response: HTML
 
-Returns the web application to you.
-Endpoints for assets used by the web app are not listed here,
-but work exactly as you'd expect.
-
-### `GET /provisional_creds`
-
-Expected request: nothing special.
-
-Response: JSON
-```ts
-{ id: string; accessKey: string }
-```
-
 Step 1 of the account creation flow.
-Generates provisional credentials, stores them in the session, and returns them to you.
+Generates provisional credentials, stores them in the session, and returns the first step of that flow to you.
 
 ### `POST /create_account`
 
@@ -45,13 +46,15 @@ Expected request:
 Responses:
  - `401` You must access /provisional_creds before attempting to create an account
  - `401` You must return the same credentials as previously provided to you
- - `201` (user ID)
+ - `303 /dashboard?onboard`
 
 Step 2 of the account creation flow.
 
 When given back account credentials matching the provisional ones in the session,
 removes the provisional credentials from the session, creates an account, and
 sets the authenticated user session (so that at this point you are now logged in).
+
+It then sends you to the dashboard.
 
 ### `POST /login`
 
@@ -60,7 +63,7 @@ Expected request:
 
 Responses:
  - `401` incorrect user ID or access key
- - `200` (user ID)
+ - `303 /dashboard`
 
 ### `POST /logout`
 
@@ -69,7 +72,7 @@ Expected request:
 
 Responses:
  - `400` You are not logged in
- - `200`
+ - `303 /`
 
 Logs you out, by removing the authenticated user session.
 This prevents you from accessing authenticated endpoints with your session,

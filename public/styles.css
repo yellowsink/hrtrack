@@ -1,0 +1,8 @@
+#preflight-table {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	gap: 1rem;
+	align-items: baseline;
+
+	margin-bottom: 1rem;
+}

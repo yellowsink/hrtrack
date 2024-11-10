@@ -12,7 +12,7 @@ void main()
 {
 	auto settings = new HTTPServerSettings;
 	settings.port = 8080;
-	settings.bindAddresses = ["::1", "127.0.0.1"];
+	settings.bindAddresses = ["::"];
 	settings.sessionStore = new ExpiringMemorySessionStore;
 
 	auto listener = listenHTTP(
@@ -36,12 +36,37 @@ class Api
 
 		// stores the provisional auth details for the user signup flow
 		SessionVar!(AccessKeyAuthPair, "provisionalCreds") provisionalCreds;
+
+		bool sessionHas(string key)
+		{
+			return request.session && request.session.isKeySet(key);
+		}
+
+		void delayedRedirect(int timeout, string dest)
+		{
+			header("Refresh", timeout.to!string ~ "; url=" ~ dest);
+			response.writeBody("You were logged out. Redirecting in " ~ timeout.to!string ~ " seconds...", "text/html");
+		}
 	}
 
-	string index() { return ""; }
+	void index() { render!"index.dt"; }
+
+	void getDashboard()
+	{
+		if (!sessionHas("user"))
+		{
+			status(HTTPStatus.unauthorized);
+			delayedRedirect(5, "/");
+			return;
+		}
+
+		auto isOnboarding = "onboard" in request.query;
+
+		render!("dashboard.dt", isOnboarding);
+	}
 
 	// step 1 of the signup flow: generate provisional credentials
-	Json getProvisionalCreds()
+	void getAccountPreflight()
 	{
 		AccessKeyAuthPair ap;
 		do
@@ -51,7 +76,9 @@ class Api
 
 		provisionalCreds = ap;
 
-		return serializeToJson(ApiAccessKeyAuthPair(ap));
+		auto apiCreds = ApiAccessKeyAuthPair(ap);
+
+		render!("account_preflight.dt", apiCreds);
 	}
 
 	// step 2 of the signup flow: as long as the user provides correct provisional credentials, create an account
@@ -76,8 +103,8 @@ class Api
 
 		authedUser = database.createUser(creds.id, creds.accessKey);
 
-		status(HTTPStatus.created);
-		return ApiAccessKeyAuthPair(creds).id.dup;
+		redirect("/dashboard?onboard", 303);
+		return "";
 	}
 
 	string postLogin(char[] id, char[] accessKey)
@@ -103,8 +130,8 @@ class Api
 			// yay! we're okay. now set our session and return.
 			authedUser = AuthedUserSession(creds.id, udKey.get);
 
-			status(HTTPStatus.ok);
-			return ApiAccessKeyAuthPair(creds).id.dup;
+			redirect("/dashboard", 303);
+			return "";
 		}
 		catch (CryptographicException)
 		{
@@ -121,6 +148,7 @@ class Api
 		}
 
 		request.session.remove("user");
+		redirect("/", 303);
 		return "";
 	}
 

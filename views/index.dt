@@ -1,0 +1,44 @@
+extends layout.dt
+
+block content
+	include includes/alpine.dt
+
+	main(x-data)
+		h1 HRTrack
+
+		noscript
+			strong You have Javascript disabled! You will not be able to use this site. Sorry.
+
+		button(@click="$refs.loginDialog.showModal()") Log in
+
+		a(href="/account_preflight")
+			button Create an account
+
+		p
+			| HRTrack is a web application for tracking the overall progress of your hormone replacement therapy,
+			| tracking each time you take your HRT, and reminding you to take it.
+
+		p
+			| It also includes many other features specifically designed for the interest of trans folk,
+			| including long term statistics, bloodwork tracking, body measurement tracking, injection site suggestion,
+			| and tracking of your supplies (including notifying you when its time to buy some more of something).
+
+		p
+			| Your data is stored fully encrypted. The site host (me!) cannot read any of your data.
+			| You can export or delete your data at any time.
+
+		p
+			| Please see the <a href="https://github.com/yellowsink/hrtrack">project GitHub</a>
+			| for more information, and you can contact me at <a href="mailto:yellowsink@riseup.net">yellowsink@riseup.net</a>
+			| if you have any concerns or specific questions.
+
+		dialog(x-ref="loginDialog")
+			form(method="dialog")
+				button(type="submit") Cancel
+
+			form(action="/login", method="post")
+				p Please enter your User ID and Access Key:
+				input(type="text", name="id", autocomplete="username")
+				input(type="password", name="accessKey")
+
+				button(type="submit") Log in

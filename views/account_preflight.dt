@@ -1,0 +1,39 @@
+extends layout.dt
+
+block content
+	- // takes in `ApiAccessKeyAuthPair apiCreds`
+
+	main
+		h1 Create HRTrack Account
+
+		p
+			| You will log in with your automatically generated <em>User ID</em> and <em>Access Key</em>.
+			| You can change your access key in the settings. You should write these down somewhere safe, or ideally,
+			| save them in your password manager.
+
+		div#preflight-table
+			span User ID
+			code=apiCreds.id
+			span Access Key
+			code=apiCreds.accessKey
+
+		p Please enter your credentials again, and then create your account.
+
+		- // have you ever tried to make a login form that will actually trigger password managers??? AAAARGH!
+		form(action="/create_account?", method="post", onsubmit="preflight()")
+			label(for="entryid") User ID
+			input(type="text", id="entryid", autocomplete="username", name="username", required)
+			label(for="entryak") Access Key
+			input(type="password", id="entryak", autocomplete="new-password", name="password", required)
+
+			input(type="text", name="onboard", value="", style="display: none")
+
+			input(type="submit", value="Create account")
+
+			:javascript
+				function preflight()
+				{
+					// I love password managers.
+					entryid.name = "id";
+					entryak.name = "accessKey";
+				}

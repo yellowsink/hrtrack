@@ -1,0 +1,13 @@
+extends layout.dt
+
+block content
+	include includes/alpine.dt
+
+	- if (isOnboarding)
+		script(type="module", src="/onboarding.js")
+
+	main(x-data)
+		p TODO: app
+
+		form(action="/logout", method="post")
+			button(type="submit") Log out
