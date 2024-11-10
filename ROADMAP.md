@@ -4,18 +4,22 @@
  - account creation flow
  - login and logout apis
  - session expiration
-
-## In Progress
  - full API documentation for my own reference
  - full database format and entity documentation (again for my reference)
 
+## In Progress
+ - frontend:
+   * account creation, login flows
+   * user settings page
+ - full access key management API
+
 ## To-Do (high priority)
- - frontend (develop this in sync with the server, not afterwards)
+ - account deletion (this and export both require recursively finding the user's owned objects)
  - fully mock up stored data and UI
  - actually store medicate events
    * multiple medication types from the start
  - store and auto update current stocks
- - account deletion and export (both of these require recursively finding the user's owned objects)
+ - account export
 
 ## To-Do (later)
  - stats and trends
