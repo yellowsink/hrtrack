@@ -1,5 +1,7 @@
 # HRTrack
 
+[![wakatime](https://wakatime.com/badge/github/yellowsink/hrtrack.svg)](https://wakatime.com/badge/github/yellowsink/hrtrack)
+
 A PWA to track your HRT.
 
 HRTrack is very work-in-progress at the time of writing,
