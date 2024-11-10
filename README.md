@@ -1,6 +1,9 @@
 # HRTrack
 
-A PWA to track HRT.
+A PWA to track your HRT.
+
+HRTrack is very work-in-progress at the time of writing,
+please see the roadmap for info on current status of development.
 
 Goals:
  - remind you to take your HRT (push notifications optional)
