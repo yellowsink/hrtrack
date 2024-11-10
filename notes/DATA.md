@@ -10,10 +10,7 @@ enum RelationType : ubyte {
 }
 ```
 
-The binary serialization of each object type is currently defined to be the output
-of [cerealed](http://cerealed.dub.pm/).
-This may be changed in the future, some time before 1.0, if forward compatibility capabilities are insufficient.
-Possibly to messagepack, protobuf, cap'n proto, or some other format.
+The binary serialization of each object type is the messagepack of the struct.
 
 Relation keys are listed as a list of concatenated binary values.
 Each one has its size in bytes listed, and all numbers are encoded as big-endian.
@@ -35,15 +32,34 @@ Hashes are SHA3-256.
 ubyte[32]
 ```
 
+### Timestamp
+
+```d
+long
+```
+
+Stores the number of hecto-nanoseconds (1hns = 100ns) since midnight, 1 jan, 1 AD, in UTC.
+
+This is chosen as it is easily compatible with D's `SysTime`.
+
 ### UserData
 
 An object representing a user's account details and preferences.
 
 ```d
+struct UserDataAccessKey
+{
+	Hash hash;
+	Timestamp createdAt;
+	string name;
+}
+
 struct UserData
 {
 	ulong id;
-	Hash[] accessKeyHashes;
+	Timestamp createdAt;
+	Timestamp modifiedAt;
+	UserDataAccessKey[] accessKeyHashes;
 }
 ```
 

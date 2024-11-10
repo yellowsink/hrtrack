@@ -1,3 +1,7 @@
+module types;
+
+public import types.domain;
+
 import std.base64 : B64 = Base64URLNoPadding;
 import std.bitmanip : bigEndianToNative, nativeToBigEndian;
 
@@ -10,8 +14,6 @@ private T[L] dynToStatic(ulong L, T)(T[] dyn)
 	dst[] = dyn[];
 	return dst;
 }
-
-alias RawAESKey = ubyte[256/8];
 
 /// the data stored when a user is authenticated: their id and user data key
 struct AuthedUserSession
@@ -48,16 +50,9 @@ struct ApiAccessKeyAuthPair
 	AccessKeyAuthPair decode()
 	{
 		return AccessKeyAuthPair(
-			B64.decode(id).dynToStatic!(ulong.sizeof).bigEndianToNative!ulong,
-			B64.decode(accessKey).dynToStatic!32
+			B64.decode(id).dynToStatic!(ulong.sizeof)
+				.bigEndianToNative!ulong,
+				B64.decode(accessKey).dynToStatic!32
 		);
 	}
-}
-
-// domain types
-
-struct UserData
-{
-	ulong id;
-
 }

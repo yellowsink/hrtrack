@@ -1,6 +1,6 @@
 module crypt;
 
-import types : RawAESKey;
+import types : RawAESKey, Hash;
 
 ubyte[N] rand(ulong N)()
 {
@@ -39,17 +39,17 @@ ubyte[] decrypt(const RawAESKey rkey, const ubyte[] cipher)
 	return decrypt(key, encrypted);
 }
 
-ubyte[256/8] hash(const ubyte[] raw)
+Hash hash(const ubyte[] raw)
 {
 	import secured.hash : hash_ex, HashAlgorithm;
 
-	ubyte[256/8] buf;
+	Hash buf;
 	buf[] = hash_ex(raw, HashAlgorithm.SHA3_256);
 	return buf;
 }
 
 // performs a constant-time check for extra security.
-bool check_hash(const ubyte[32] hash, const ubyte[] raw)
+bool check_hash(const Hash hash, const ubyte[] raw)
 {
 	import secured.hash : hash_verify_ex, HashAlgorithm;
 

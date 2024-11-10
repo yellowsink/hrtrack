@@ -1,10 +1,12 @@
 // encrypted data storage utilities
 
-import rocksdb : Database, WriteBatch;
+import rocksdb : Database, WriteBatch, Iterator, ReadOptions;
 
 import types : RawAESKey;
 
 import crypt : encrypt, decrypt, hash, check_hash;
+
+import std.datetime : Clock;
 
 private:
 
@@ -22,14 +24,14 @@ Database open(string name)
 
 void put(DB, T, bool ENC = true)(DB db, const ubyte[] key, const T value, const RawAESKey aesKey)
 {
-	import cerealed : cerealise;
+	import msgpack : pack;
 
-	auto cerealised = cerealise(value);
+	auto serealised = pack(value);
 
 	static if (ENC)
-		auto toPut = encrypt(aesKey, cerealised);
+		auto toPut = encrypt(aesKey, serealised);
 	else
-		auto toPut = cerealised;
+		auto toPut = serealised;
 
 	// rocks is fast enough to do this sync
 	// cast away the immutable from the key because put() should take it const, the binding is even for `const char*`!!!
@@ -38,7 +40,7 @@ void put(DB, T, bool ENC = true)(DB db, const ubyte[] key, const T value, const 
 
 T get(DB, T, bool ENC = true)(DB db, const ubyte[] key, const RawAESKey aesKey)
 {
-	import cerealed : decerealise;
+	import msgpack : unpack;
 	import std.conv : to;
 
 	auto gotten = db.get(cast(ubyte[]) key);
@@ -46,11 +48,11 @@ T get(DB, T, bool ENC = true)(DB db, const ubyte[] key, const RawAESKey aesKey)
 	if (gotten.length == 0) throw new KeyNotPresentException(("Key '" ~ key.to!string ~ "' not present").dup);
 
 	static if (ENC)
-		auto cerealised = decrypt(aesKey, gotten);
+		auto serealised = decrypt(aesKey, gotten);
 	else
-		auto cerealised = gotten;
+		auto serealised = gotten;
 
-	return decerealise!T(cerealised);
+	return unpack!T(serealised);
 }
 
 public:
@@ -94,6 +96,12 @@ struct DB
 		if (!_wb.isNull) endBatch();
 
 		_db.close();
+	}
+
+	/// note, the Iterator returned by this must not outlive the DB instance.
+	Iterator iter()
+	{
+		return _db.iter();
 	}
 
 	// basic operations
@@ -189,11 +197,22 @@ struct DB
 
 	// domain operations
 
-	void addAccessKey(const RawAESKey accessKey, const RawAESKey userDataKey)
+	void addAccessKey(bool SKIP_UPDATE_USER = false)(const ulong uid, const RawAESKey accessKey, const RawAESKey userDataKey)
 	{
-		const key = KeyType.UDKeyByAccessKey ~ hash(accessKey);
+		auto keyhash = hash(accessKey);
+		const key = KeyType.UDKeyByAccessKey ~ keyhash;
 		enforce(!includes(key));
 		put(key, userDataKey, accessKey);
+
+		static if (!SKIP_UPDATE_USER)
+		{
+			auto userr = getUserById(id, userDataKey);
+			enforce(!userr.isNull);
+			auto user = userr.get;
+			user.accessKeys ~= UserDataAccessKey(keyhash, Clock.currTime);
+
+			put(KeyType.UserDataById ~ uid.nativeToBigEndian, user, encKey);
+		}
 	}
 
 	Nullable!RawAESKey getUserDataKey(const RawAESKey accessKey)
@@ -217,11 +236,12 @@ struct DB
 
 		const userDataKey = rand!RawAESKey();
 
-		auto user = UserData(id);
+		auto t = Clock.currTime;
+		auto user = UserData(id, t, t, [UserDataAccessKey(hash(accessKey), t)]);
 
 		atomic({
 			put(KeyType.UserDataById ~ id.nativeToBigEndian, user, userDataKey);
-			addAccessKey(accessKey, userDataKey);
+			addAccessKey!true(id, accessKey, userDataKey);
 		});
 
 		return AuthedUserSession(id, userDataKey);

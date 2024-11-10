@@ -9,6 +9,9 @@ The session, stored on the server, can store any combination of the following da
 When arguments are expected, they must be EITHER in request query (`/?key=value&key2=value2`), or in a form POST body.
 Both `multipart/form-data` and `application/x-www-form-urlencoded` are allowed.
 
+Note that entity IDs and encryption keys are encoded as unpadded url-safe base64
+when in transit over the API.
+
 ## Endpoints
 
 ### `GET /`
@@ -42,13 +45,22 @@ Expected request:
 Responses:
  - `401` You must access /provisional_creds before attempting to create an account
  - `401` You must return the same credentials as previously provided to you
- - `201` Created account
+ - `201` (user ID)
 
 Step 2 of the account creation flow.
 
 When given back account credentials matching the provisional ones in the session,
 removes the provisional credentials from the session, creates an account, and
 sets the authenticated user session (so that at this point you are now logged in).
+
+### `POST /login`
+
+Expected request:
+ - has `id` and `accessKey` arguments
+
+Responses:
+ - `401` incorrect user ID or access key
+ - `200` (user ID)
 
 ### `POST /logout`
 

@@ -76,7 +76,8 @@ class Api
 
 		authedUser = database.createUser(creds.id, creds.accessKey);
 
-		return "Created account";
+		status(HTTPStatus.created);
+		return ApiAccessKeyAuthPair(creds).id.dup;
 	}
 
 	string postLogin(char[] id, char[] accessKey)
@@ -103,8 +104,7 @@ class Api
 			authedUser = AuthedUserSession(creds.id, udKey.get);
 
 			status(HTTPStatus.ok);
-			response.contentType = "application/json";
-			return serializeToJsonString(userData.get);
+			return ApiAccessKeyAuthPair(creds).id.dup;
 		}
 		catch (CryptographicException)
 		{
@@ -122,5 +122,58 @@ class Api
 
 		request.session.remove("user");
 		return "";
+	}
+
+	// DEBUG ONLY, this whole function is STUPID insecure
+	debug
+	Json getDumpDatabase(char[] accessKey) // key for decryption
+	{
+		import std.bitmanip : bigEndianToNative, nativeToBigEndian;
+
+		alias B64 = Base64URLNoPadding;
+
+		ubyte[32] realAKey;
+		realAKey[] = B64.decode(accessKey);
+
+		// get user data key
+		auto udKey = database.getUserDataKey(realAKey).get;
+
+		// try and decrypt everything i guess lmao
+		auto db = database;
+		auto iter = db.iter();
+
+		Json ret = Json.emptyObject;
+
+		foreach (key, _; iter)
+		{
+			try {
+				auto key = iter.key;
+				auto kt = cast(KeyType) key[0];
+
+				final switch (kt) with (KeyType)
+				{
+					case UserDataById:
+						ubyte[ulong.sizeof] idk;
+						idk[] = key[1..$];
+						auto id = idk.bigEndianToNative!ulong;
+						ret[cast(immutable) (kt.to!string ~ "_" ~ B64.encode(key[1..$]))] = serializeToJson(db.getUserById(id, udKey));
+						break;
+
+					case UDKeyByAccessKey:
+						Hash h;
+						h[] = key[1..$];
+
+						if (check_hash(h, realAKey))
+							ret[cast(immutable) (kt.to!string ~ "_" ~ B64.encode(h))] = serializeToJson(db.getUserDataKey(realAKey));
+				}
+			}
+			catch (Exception e)
+			{
+				// this is for debugging anyway
+				logDebug(e.to!string);
+			}
+		}
+
+		return ret;
 	}
 }
