@@ -22,7 +22,7 @@ the ciphertext is the actual encrypted data, and the authentication tag is used
 to double-check the decrypted data isn't just garbage, to reject use of the wrong key
 to decrypt the data.
 
-Hashes are SHA3-256.
+Hashes are either SHA3-256, or a 64-bit hash plus SHA3-224.
 
 ## Types
 
