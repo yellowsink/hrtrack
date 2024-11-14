@@ -7,7 +7,8 @@
 		"msgpack-d": "~>1.0.5",
 		"rocksdb": "~>0.0.7",
 		"secured": "~>3.0.0",
-		"vibe-d": "~>0.9"
+		"vibe-d": "~>0.9",
+		"ysbase": ">=0.1.0-beta <0.2.0-0"
 	},
 	"description": "A PWA to track HRT",
 	"dflags": [

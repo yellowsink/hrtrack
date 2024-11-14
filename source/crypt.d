@@ -2,6 +2,8 @@ module crypt;
 
 import types : RawAESKey, Hash;
 
+import ysbase : transmute;
+
 ubyte[N] rand(ulong N)()
 {
 	import secured.random : random;
@@ -13,8 +15,7 @@ ubyte[N] rand(ulong N)()
 
 T rand(T)()
 {
-	auto bytes = rand!(T.sizeof)();
-	return *(cast(T*) &bytes);
+	return rand!(T.sizeof).transmute!T;
 }
 
 ubyte[] encrypt(const RawAESKey rkey, const ubyte[] payload)
