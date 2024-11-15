@@ -6,16 +6,18 @@
  - session expiration
  - full API documentation for my own reference
  - full database format and entity documentation (again for my reference)
+ - frontend:
+   * account creation, login flows
 
 ## In Progress
  - frontend:
-   * account creation, login flows
    * user settings page
- - full access key management API
+     - full access key management API
+ - fully mock up stored data and UI
 
 ## To-Do (high priority)
  - account deletion (this and export both require recursively finding the user's owned objects)
- - fully mock up stored data and UI
+ - bloodwork scheduling / reminders
  - actually store medicate events
    * multiple medication types from the start
  - store and auto update current stocks
